@@ -12,6 +12,7 @@ public class SOCamera : ScriptableObject
     
     [Header("Input")]
     public float TurnDampening = 20.0f;
+    public float SensitivityMult = 1;
 
     [Header("Constraints")]
     public float MaxY = 70.0f;

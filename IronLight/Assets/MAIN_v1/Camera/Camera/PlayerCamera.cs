@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class PlayerCamera : MonoBehaviour
 {
-    private Transform _CameraTansform;
+    public GameObject target;
+
     private Transform _ParentTransform;
     private Vector3 _LocalRotation;
     private Vector3 _TargetLocalPosition;
@@ -22,13 +23,18 @@ public class PlayerCamera : MonoBehaviour
     [SerializeField] private float cameraCollisionOffset = 0.1f;
 
     [Space]
-    public float MouseSensitivity = 4f;
-    public float TurnDampening = 10f;
-    [SerializeField] private float OffSetLeft = 0f;
-    [SerializeField] private float CameraDistance = 6f;
-    [SerializeField] private float CameraMinHeight = -20f;
-    [SerializeField] private float CameraMaxHeight = 90f;
+    public float mouseSensitivity = 4f;
 
+    [SerializeField] private SOCamera defaultCamera;
+    private float mouseSensitivityMult = 1f;
+    private float turnDampening = 10f;
+    private float offSetUp = 0.6f;
+    private float offSetLeft = 0f;
+    private float cameraDistance = 6f;
+    private float cameraMinHeight = -20f;
+    private float cameraMaxHeight = 90f;
+
+    [Space]
     public bool CameraDisabled = false;
     public bool Idle = false;
     
@@ -36,8 +42,10 @@ public class PlayerCamera : MonoBehaviour
 
     void Start()
     {
+        //Set Camera to default values
+        ResetCameraVars();
+
         //Getting Transforms
-        _CameraTansform = transform;
         _ParentTransform = transform.parent;
 
         //Maintaining Starting Rotation
@@ -48,16 +56,26 @@ public class PlayerCamera : MonoBehaviour
         //Cursor.lockState = CursorLockMode.Locked;
 
         //Setting camera distance
-        _TargetLocalPosition = new Vector3(-OffSetLeft, 0f, CameraDistance * -1f);
-        _CameraTansform.localPosition = _TargetLocalPosition;
+        _TargetLocalPosition = new Vector3(-offSetLeft, 0f, cameraDistance * -1f);
+        transform.localPosition = _TargetLocalPosition;
     }
 
-    public void Respawn(float pRotationY) 
+    public void ResetCameraVars()
     {
-        transform.parent.rotation = Quaternion.Euler(0, pRotationY, 0);
-        _LocalRotation.x = pRotationY;
-        _LocalRotation.y = 0;
+        mouseSensitivityMult = defaultCamera.SensitivityMult;
+        offSetUp = defaultCamera.UpOffset;
+        offSetLeft = defaultCamera.LeftOffset;
+        cameraDistance = defaultCamera.Distance;
+        cameraMinHeight = defaultCamera.MinY;
+        cameraMaxHeight = defaultCamera.MaxY;
     }
+
+    //public void Respawn(float pRotationY) 
+    //{
+    //    transform.parent.rotation = Quaternion.Euler(0, pRotationY, 0);
+    //    _LocalRotation.x = pRotationY;
+    //    _LocalRotation.y = 0;
+    //}
 
     void Update()
     {
@@ -76,7 +94,10 @@ public class PlayerCamera : MonoBehaviour
 
         //Actual Camera Transformations
         Quaternion TargetQ = Quaternion.Euler(_LocalRotation.y, _LocalRotation.x, 0);
-        _ParentTransform.rotation = Quaternion.Lerp(_ParentTransform.rotation, TargetQ, Time.deltaTime * TurnDampening);
+        _ParentTransform.rotation = Quaternion.Slerp(_ParentTransform.rotation, TargetQ, Time.deltaTime * turnDampening);
+
+        //Position the camera pivot on the player
+        _ParentTransform.position = target.transform.position + (Vector3.up * offSetUp);
 
         //Camera Collision
         CameraCollision();
@@ -87,17 +108,17 @@ public class PlayerCamera : MonoBehaviour
         //Rotation of the camera based on mouse movement
         if (Input.GetAxis("Mouse X") != 0 || Input.GetAxis("Mouse Y") != 0)
         {
-            _LocalRotation.x += Input.GetAxis("Mouse X") * MouseSensitivity * pInputModifier;
-            _LocalRotation.y -= Input.GetAxis("Mouse Y") * MouseSensitivity * pInputModifier * (Inverted ? -1 : 1);
+            _LocalRotation.x += Input.GetAxis("Mouse X") * mouseSensitivity * mouseSensitivityMult * pInputModifier;
+            _LocalRotation.y -= Input.GetAxis("Mouse Y") * mouseSensitivity * mouseSensitivityMult * pInputModifier * (Inverted ? -1 : 1);
 
             //Clamping the y rotation to horizon and not flipping over at the top
-            if (_LocalRotation.y < CameraMinHeight)
+            if (_LocalRotation.y < cameraMinHeight)
             {
-                _LocalRotation.y = CameraMinHeight;
+                _LocalRotation.y = cameraMinHeight;
             }
-            else if (_LocalRotation.y > CameraMaxHeight)
+            else if (_LocalRotation.y > cameraMaxHeight)
             {
-                _LocalRotation.y = CameraMaxHeight;
+                _LocalRotation.y = cameraMaxHeight;
             }
         }
     }
@@ -117,19 +138,19 @@ public class PlayerCamera : MonoBehaviour
     void CameraCollision()
     {
         RaycastHit hit;
-        Vector3 rayDirection = (_CameraTansform.position - _ParentTransform.position).normalized;
-        Physics.Raycast(_ParentTransform.position, rayDirection, out hit, CameraDistance + cameraCollisionOffset, cameraCollisionLayers);
+        Vector3 rayDirection = (transform.position - _ParentTransform.position).normalized;
+        Physics.Raycast(_ParentTransform.position, rayDirection, out hit, cameraDistance + cameraCollisionOffset, cameraCollisionLayers);
 
         if (hit.point != Vector3.zero)
         {
             hit.point -= _ParentTransform.position + rayDirection * cameraCollisionOffset;
-            _CameraTansform.localPosition = Vector3.Lerp(_CameraTansform.localPosition, _TargetLocalPosition * Mathf.Clamp((hit.point.magnitude / _TargetLocalPosition.magnitude), cameraCollisionMinDisPercent, 0.5f), Time.deltaTime * cameraCollisionDampening);
+            transform.localPosition = Vector3.Lerp(transform.localPosition, _TargetLocalPosition * Mathf.Clamp((hit.point.magnitude / _TargetLocalPosition.magnitude), cameraCollisionMinDisPercent, 0.5f), Time.deltaTime * cameraCollisionDampening);
             //Debug.Log(hit.point.magnitude / _TargetLocalPosition.magnitude * 2 * 100 + "%");
             //Debug.DrawLine(_ParentTransform.position, hit.point + _ParentTransform.position, Color.red, 0.1f);
         }
         else
         {
-            _CameraTansform.localPosition = Vector3.Lerp(_CameraTansform.localPosition, _TargetLocalPosition * 0.5f, Time.deltaTime * cameraCollisionDampening);
+            transform.localPosition = Vector3.Lerp(transform.localPosition, _TargetLocalPosition * 0.5f, Time.deltaTime * cameraCollisionDampening);
         }
     }
 
@@ -137,61 +158,77 @@ public class PlayerCamera : MonoBehaviour
 
 
     // Camera Transition ////////////// Lerp camera variables
-    public void ChangePlayerCamera(float pOffSetLeft, float pTurnDampening, float pCameraDistance, float pCameraMinHeight, float pCameraMaxHeight, float pTransitionSpeed)
+    public void ChangePlayerCamera(float pOffSetUp, float pOffSetLeft, float pTurnDampening, float pCameraDistance, float pCameraMinHeight, float pCameraMaxHeight, float pSensitivityMult, float pTransitionSpeed)
     {
         if (transRoutine != null)
             StopCoroutine(transRoutine);
-        transRoutine = StartCoroutine(OtherCameraVarsTransition(pOffSetLeft, pTurnDampening, pCameraDistance, pCameraMinHeight, pCameraMaxHeight, pTransitionSpeed));
+        transRoutine = StartCoroutine(CameraVarsTransition(pOffSetUp, pOffSetLeft, pTurnDampening, pCameraDistance, pCameraMinHeight, pCameraMaxHeight, pSensitivityMult, pTransitionSpeed));
     }
 
-    public IEnumerator OtherCameraVarsTransition(float pOffSetLeft, float pTurnDampening, float pCameraDistance, float pCameraMinHeight, float pCameraMaxHeight, float pTransitionSpeed)
+    public void ChangePlayerCamera(SOCamera pPreset, float pTransitionSpeed)
     {
+        if (transRoutine != null)
+            StopCoroutine(transRoutine);
+        transRoutine = StartCoroutine(CameraVarsTransition(pPreset.UpOffset, pPreset.LeftOffset, pPreset.TurnDampening, pPreset.Distance, pPreset.MinY, pPreset.MaxY, pPreset.SensitivityMult, pTransitionSpeed));
+    }
+
+    public IEnumerator CameraVarsTransition(float pOffSetUp, float pOffSetLeft, float pTurnDampening, float pCameraDistance, float pCameraMinHeight, float pCameraMaxHeight, float pSensitivityMult, float pTransitionSpeed)
+    {
+        mouseSensitivityMult = pSensitivityMult;
+
         short done;
 
         do {
             done = 0;
 
             //Lerping all of the values
-            TurnDampening = Mathf.Lerp(TurnDampening, pTurnDampening, pTransitionSpeed * Time.deltaTime * 10);
-            if (Mathf.Abs(TurnDampening - pTurnDampening) <= 0.01f)
+            turnDampening = Mathf.Lerp(turnDampening, pTurnDampening, pTransitionSpeed * Time.deltaTime * 10);
+            if (Mathf.Abs(turnDampening - pTurnDampening) <= 0.01f)
             {
-                TurnDampening = pTurnDampening;
+                turnDampening = pTurnDampening;
                 done++;
             }
 
-            CameraDistance = Mathf.Lerp(CameraDistance, pCameraDistance, pTransitionSpeed * Time.deltaTime);
-            if (Mathf.Abs(CameraDistance - pCameraDistance) <= 0.01f)
+            cameraDistance = Mathf.Lerp(cameraDistance, pCameraDistance, pTransitionSpeed * Time.deltaTime);
+            if (Mathf.Abs(cameraDistance - pCameraDistance) <= 0.01f)
             {
-                CameraDistance = pCameraDistance;
+                cameraDistance = pCameraDistance;
                 done++;
             }
 
-            CameraMinHeight = Mathf.Lerp(CameraMinHeight, pCameraMinHeight, pTransitionSpeed * Time.deltaTime);
-            if (Mathf.Abs(CameraMinHeight - pCameraMinHeight) <= 0.01f)
+            cameraMinHeight = Mathf.Lerp(cameraMinHeight, pCameraMinHeight, pTransitionSpeed * Time.deltaTime);
+            if (Mathf.Abs(cameraMinHeight - pCameraMinHeight) <= 0.01f)
             {
-                CameraMinHeight = pCameraMinHeight;
+                cameraMinHeight = pCameraMinHeight;
                 done++;
             }
 
-            CameraMaxHeight = Mathf.Lerp(CameraMaxHeight, pCameraMaxHeight, pTransitionSpeed * Time.deltaTime);
-            if (Mathf.Abs(CameraMaxHeight - pCameraMaxHeight) <= 0.01f)
+            cameraMaxHeight = Mathf.Lerp(cameraMaxHeight, pCameraMaxHeight, pTransitionSpeed * Time.deltaTime);
+            if (Mathf.Abs(cameraMaxHeight - pCameraMaxHeight) <= 0.01f)
             {
-                CameraMaxHeight = pCameraMaxHeight;
+                cameraMaxHeight = pCameraMaxHeight;
                 done++;
             }
 
-            OffSetLeft = Mathf.Lerp(OffSetLeft, pOffSetLeft, pTransitionSpeed * Time.deltaTime);
-            if (Mathf.Abs(OffSetLeft - pOffSetLeft) <= 0.01f)
+            offSetLeft = Mathf.Lerp(offSetLeft, pOffSetLeft, pTransitionSpeed * Time.deltaTime);
+            if (Mathf.Abs(offSetLeft - pOffSetLeft) <= 0.01f)
             {
-                OffSetLeft = pOffSetLeft;
+                offSetLeft = pOffSetLeft;
+                done++;
+            }
+
+            offSetUp = Mathf.Lerp(offSetUp, pOffSetUp, pTransitionSpeed * Time.deltaTime);
+            if (Mathf.Abs(offSetUp - pOffSetUp) <= 0.01f)
+            {
+                offSetUp = pOffSetUp;
                 done++;
             }
 
             //Setting camera distance
-            _TargetLocalPosition = new Vector3(-OffSetLeft, 0f, CameraDistance * -1f);
+            _TargetLocalPosition = new Vector3(-offSetLeft, 0f, cameraDistance * -1f);
 
             yield return null;
         }
-        while (done != 5);
+        while (done != 6);
     }
 }
