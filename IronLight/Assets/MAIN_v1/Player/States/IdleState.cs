@@ -25,7 +25,7 @@ public class IdleState : BaseState
 
     public override Type Tick()
     {
-        Debug.Log("Currently in Idle State");
+        //Debug.Log("Currently in Idle State");
 
         if (stateManager.vertical != 0 || stateManager.horizontal != 0)
         {

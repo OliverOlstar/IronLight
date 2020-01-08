@@ -86,9 +86,6 @@ public class PlayerStateManager : MonoBehaviour
     {
         Debug.Log("Setting up Rigidbody");
         _rb = GetComponentInChildren<Rigidbody>();
-
-        if (_rb)
-            Debug.Log("You connected nigga");
     }
 
 

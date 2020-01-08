@@ -14,7 +14,7 @@ public class InputHandler : MonoBehaviour
     float delta;
 
     PlayerStateManager playerState;
-    CameraManager cameraManager;
+    //CameraManager cameraManager;
 
     // Start is called before the first frame update
     void Start()
@@ -22,8 +22,8 @@ public class InputHandler : MonoBehaviour
         playerState = GetComponent<PlayerStateManager>();
         playerState.Init();
 
-        cameraManager = CameraManager.singleton;
-        cameraManager.Init(transform);
+        //cameraManager = CameraManager.singleton;
+        //cameraManager.Init(transform);
 
     }
 
@@ -39,7 +39,7 @@ public class InputHandler : MonoBehaviour
         delta = Time.fixedDeltaTime;
         UpdateStates();
         playerState.FixedTick(delta);
-        cameraManager.Tick(delta);
+        //cameraManager.Tick(delta);
     }
 
 

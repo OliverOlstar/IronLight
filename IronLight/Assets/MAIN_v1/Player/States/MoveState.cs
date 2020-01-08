@@ -25,7 +25,7 @@ public class MoveState : BaseState
 
     public override Type Tick()
     {
-        Debug.Log("Currently in Move State");
+        //Debug.Log("Currently in Move State");
 
         if(_stateManager.vertical == 0 && _stateManager.horizontal == 0)
         {
@@ -37,7 +37,7 @@ public class MoveState : BaseState
             _movement.CalculateMoveDir(_stateManager.vertical, _stateManager.horizontal);
             _movement.CalculateMoveAmount(_stateManager.vertical, _stateManager.horizontal);
 
-            Debug.Log(_movement.moveDir);
+            //Debug.Log(_movement.moveDir);
         }
 
         
